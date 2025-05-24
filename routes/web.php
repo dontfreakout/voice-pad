@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Livewire\CategoryShow;
+use App\Livewire\Home;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', Home::class)->name('home');
+Route::get('/category/{category}', CategoryShow::class)->name('category.show');
