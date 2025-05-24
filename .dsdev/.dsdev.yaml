@@ -29,8 +29,6 @@ type:
             composer-outdated: 'composer outdated -D'
             composer-validate: 'composer validate'
             composer-audit: 'composer audit'
-            phpstan: 'vendor/bin/phpstan analyze'
-            cc: 'bin/console cache:clear'
 
     node:
         scripts:
@@ -45,13 +43,28 @@ type:
 app:
     type: php
     scripts:
-        cleanup: 'rm -rf var/cache var/log'
-        db-create: 'artisan migrate --force'
-        db-migrate: 'artisan migrate'
+        cleanup:
+          - 'php artisan cache:clear'
+          - 'php artisan config:clear'
+          - 'php artisan route:clear'
+          - 'php artisan view:clear'
+        db-create: 'php artisan migrate --force'
+        db-migrate: 'php artisan migrate'
+        db-rollback: 'php artisan migrate:rollback'
+        ide-helper:
+            - 'php artisan ide-helper:generate'
+            - 'php artisan ide-helper:models --write'
+            - 'php artisan ide-helper:meta'
         cs: '@phpcs'
         csf: '@phpcbf'
-        phpcbf: 'vendor/bin/pint'
-        phpcs: 'vendor/bin/pint --test'
+        phpcbf: '@pint'
+        phpcs: '@pint-test'
+        pint: 'vendor/bin/pint'
+        pint-test: 'vendor/bin/pint --test'
+        pint-v: 'vendor/bin/pint -v'
+        phpstan:
+            - '@ide-helper'
+            - 'vendor/bin/phpstan analyze'
         check:
             - '@composer-validate'
             - '@phpcbf'
