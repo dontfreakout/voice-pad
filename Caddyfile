@@ -1,0 +1,29 @@
+voicepad.localhost {
+    root * /srv/app
+    php_fastcgi app:9000 {
+        root /srv/app/public
+    }
+    file_server
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+cdn.voicepad.localhost {
+    root * /srv/cdn
+
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods GET
+    }
+
+    file_server
+    encode zstd gzip
+
+    log {
+        output stdout
+        format console
+    }
+}

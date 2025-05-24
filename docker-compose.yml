@@ -1,0 +1,94 @@
+services:
+    caddy:
+        image: caddy:2
+#        ports:
+#            - "80:80"
+#            - "443:443"
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:z
+            - ./public:/srv/app:z
+            - ./storage/app/public:/srv/cdn:z
+            - caddy_data:/data
+            - caddy_config:/config
+        networks:
+            default:
+            proxy:
+                aliases:
+                    - voicepad.localhost
+                    - cdn.voicepad.localhost
+        environment:
+            - VIRTUAL_HOST=voicepad.localhost,cdn.voicepad.localhost
+            - VIRTUAL_PROTO=https
+            - VIRTUAL_PORT=443
+
+    app:
+        image: sys.r.digital.cz/php:8.4-fpm
+        environment:
+            - HOSTNAME=dev-api
+        volumes:
+            - ./.dsdev:/.dsdev:ro,z
+            - .:/srv/app:z
+            - ./docker/zzzz_custom.ini:/usr/local/etc/php/conf.d/zzzz_custom.ini:z
+
+    node:
+        image: node:24
+        working_dir: /srv/app
+        volumes:
+            - ./.dsdev:/.dsdev:ro,z
+            - .:/srv/app:z
+        tty: true
+        environment:
+            - VIRTUAL_HOST=npm.voicepad.localhost
+            - VIRTUAL_PROTO=http
+            - VIRTUAL_PORT=3000
+        networks:
+            default:
+            proxy:
+                aliases:
+                    - npm.voicepad.localhost
+
+    key_db:
+        image: eqalpha/keydb:x86_64_v6.3.4
+        entrypoint: keydb-server /etc/keydb/keydb.conf --server-threads 1 --appendonly yes
+        ports:
+            - "56378:6379"
+        volumes:
+            -   keydb_data:/data
+
+    db:
+        image: mariadb:11.7.2
+        ports:
+            - "53307:3306"
+        volumes:
+            - db_data:/var/lib/mysql
+        environment:
+            - MYSQL_DATABASE=db
+            - MYSQL_ROOT_PASSWORD=HAL9000
+
+    mailpit:
+        image: axllent/mailpit:latest
+        volumes:
+            - mailpit_data:/data
+        environment:
+            - MP_MAX_MESSAGES=5000
+            - MP_DATABASE=/data/mailpit.db
+            - MP_SMTP_AUTH_ACCEPT_ANY=1
+            - MP_SMTP_AUTH_ALLOW_INSECURE=1
+            - VIRTUAL_HOST=mailpit.voicepad.localhost
+            - VIRTUAL_PROTO=http
+            - VIRTUAL_PORT=8025
+        networks:
+            default:
+            proxy:
+
+volumes:
+    caddy_data:
+    caddy_config:
+    db_data:
+    mailpit_data:
+    keydb_data:
+
+networks:
+    proxy:
+        external: true
+        name: proxy_network

@@ -1,0 +1,79 @@
+host:
+    env_vars:
+        PUPPETEER_SKIP_DOWNLOAD: '1'
+    scripts:
+        up:
+            - 'docker-compose up -d'
+        restart:
+            - '@down'
+            - '@up'
+        node:
+            - 'dsdev node bash'
+        app:
+            - 'dsdev app bash'
+        check:
+            - 'dsdev app check'
+            - 'dsdev node check'
+        psysh:
+            - 'which psysh 2>/dev/null && (cd api && psysh) || echo "PsySH not found"'
+
+type:
+    php:
+        scripts:
+            bash: 'bash'
+            ssh: 'bash'
+            cmd: 'bash'
+            composer: '@composer-install'
+            composer-install: 'composer install'
+            composer-update: 'composer update'
+            composer-outdated: 'composer outdated -D'
+            composer-validate: 'composer validate'
+            composer-audit: 'composer audit'
+            phpstan: 'vendor/bin/phpstan analyze'
+            cc: 'bin/console cache:clear'
+
+    node:
+        scripts:
+            bash: 'bash'
+            ssh: 'bash'
+            cmd: 'bash'
+            npm: '@npm-install'
+            npm-install: 'npm install'
+            npm-update: 'npm update'
+            npm-outdated: 'npm outdated'
+
+app:
+    type: php
+    scripts:
+        cleanup: 'rm -rf var/cache var/log'
+        db-create: 'artisan migrate --force'
+        db-migrate: 'artisan migrate'
+        cs: '@phpcs'
+        csf: '@phpcbf'
+        phpcbf: 'vendor/bin/pint'
+        phpcs: 'vendor/bin/pint --test'
+        check:
+            - '@composer-validate'
+            - '@phpcbf'
+            - '@phpcs'
+            - '@phpstan'
+            - '@deptrac'
+            - '@composer-audit'
+        cli-test: "bash -c \"PHP_IDE_CONFIG='serverName=localhost' bin/console dev:test\""
+        debug-security: 'php bin/console debug:config security'
+        consumer: 'php bin/console messenger:consume async -vv --failure-limit=1 --time-limit=6000 --limit=10000 --profile'
+        routes:
+          - 'php artisan route:clear'
+          - 'php artisan ziggy:generate --types'
+
+node:
+    type: node
+    scripts:
+        npm: '@npm-install'
+        npm-install: 'npm install'
+        npm-update: 'npm update'
+        npm-outdated: 'npm outdated'
+        develop: 'npm run dev'
+        dev: '@develop'
+        watch: 'npm run watch'
+        build: 'npm run build'

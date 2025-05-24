@@ -1,0 +1,8 @@
+host:
+    env_vars:
+        PODMAN_COMPOSE_WARNING_LOGS: false
+
+api:
+    type: php
+    env_vars:
+        REMOTE_HOST: 'host.containers.internal'
