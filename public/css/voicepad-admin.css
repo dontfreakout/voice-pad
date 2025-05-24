@@ -1,0 +1,131 @@
+/* VoicePad Admin Panel Custom Styles */
+
+/* Audio Player Styling */
+.audio-player-container {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.audio-player-container audio {
+    width: 100%;
+    height: 40px;
+}
+
+/* Play Button Styling */
+.play-sound-btn {
+    transition: all 0.2s ease;
+}
+
+.play-sound-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Sound Card Hover Effects */
+.fi-ta-row:hover .play-sound-btn {
+    opacity: 1;
+}
+
+/* Drag and Drop Styling for File Upload */
+.fi-fo-file-upload .fi-fo-file-upload-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    transition: all 0.2s ease;
+}
+
+.fi-fo-file-upload .fi-fo-file-upload-area:hover {
+    border-color: #f59e0b;
+    background-color: #fffbeb;
+}
+
+/* Category Badge Styling */
+.fi-badge {
+    font-weight: 500;
+}
+
+/* Duration and File Size Styling */
+.duration-badge {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+}
+
+/* Sort Order Input */
+.sort-order-input {
+    max-width: 100px;
+}
+
+/* Responsive Table Improvements */
+@media (max-width: 768px) {
+    .fi-ta-cell {
+        padding: 0.5rem;
+    }
+    
+    .audio-player-container {
+        padding: 0.5rem;
+    }
+}
+
+/* Loading States */
+.sound-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success States */
+.sound-uploaded {
+    border-color: #10b981;
+    background-color: #ecfdf5;
+}
+
+/* Error States */
+.sound-error {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+/* Custom Filament Overrides */
+.fi-section-header-heading {
+    font-weight: 600;
+}
+
+.fi-section-content {
+    padding-top: 1rem;
+}
+
+/* Drag & Drop Reordering */
+.fi-ta-row.sortable-ghost {
+    opacity: 0.4;
+    background-color: #f3f4f6;
+}
+
+.fi-ta-row.sortable-chosen {
+    background-color: #dbeafe;
+}
+
+/* Audio Waveform Placeholder */
+.waveform-placeholder {
+    height: 60px;
+    background: linear-gradient(45deg, #f3f4f6 25%, transparent 25%), 
+                linear-gradient(-45deg, #f3f4f6 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f3f4f6 75%), 
+                linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+/* Sound Stats Widget Enhancements */
+.fi-wi-stats-overview-stat-card {
+    transition: transform 0.2s ease;
+}
+
+.fi-wi-stats-overview-stat-card:hover {
+    transform: translateY(-2px);
+}

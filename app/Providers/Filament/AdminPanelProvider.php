@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('VoicePad Admin')
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -39,9 +40,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
+                \App\Filament\Widgets\SoundStatsWidget::class,
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
             ])
+            ->renderHook(
+                'panels::body.end',
+                fn (): string => '<link rel="stylesheet" href="' . asset('css/voicepad-admin.css') . '">' .
+                               '<script src="' . asset('js/voicepad-admin.js') . '"></script>'
+            )
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

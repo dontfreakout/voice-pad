@@ -1,8 +1,10 @@
 # VoicePad Admin Panel - Project Guidelines
 
-This document outlines the coding conventions, code organization, and quality standards for the VoicePad admin panel built with Laravel 12+ and FilamentPHP 3.3+.
+This document outlines the coding conventions, code organization, and quality standards for the VoicePad admin panel
+built with Laravel 12+ and FilamentPHP 3.3+.
 
 ## Table of Contents
+
 1. [Coding Conventions](#coding-conventions)
 2. [Code Organization](#code-organization)
 3. [Code Quality Tools](#code-quality-tools)
@@ -13,7 +15,8 @@ This document outlines the coding conventions, code organization, and quality st
 
 ### PHP Coding Standards
 
-We follow PSR-2 coding standard and the PSR-4 autoloading standard as adopted by Laravel. Additionally, we adhere to Laravel's opinionated coding style enforced by Laravel Pint.
+We follow PSR-2 coding standard and the PSR-4 autoloading standard as adopted by Laravel. Additionally, we adhere to
+Laravel's opinionated coding style enforced by Laravel Pint.
 
 #### General Rules
 
@@ -38,26 +41,27 @@ We follow PSR-2 coding standard and the PSR-4 autoloading standard as adopted by
 
 ### Laravel-Specific Conventions
 
-Following naming conventions that align with the PHP-FIG's PSR standards, as well as those organically adopted by the Laravel community:
+Following naming conventions that align with the PHP-FIG's PSR standards, as well as those organically adopted by the
+Laravel community:
 
 #### Naming Conventions
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Controller | Singular, PascalCase | `UserController` |
-| Model | Singular, PascalCase | `User` |
-| Migration | snake_case | `2024_01_01_000000_create_users_table` |
-| Table | Plural, snake_case | `users` |
-| Column | snake_case | `email_verified_at` |
-| Route | Plural, kebab-case | `/users/{user}` |
-| View | kebab-case | `users.index` |
-| Config | snake_case | `config('app.timezone')` |
-| Form Request | PascalCase + Request | `StoreUserRequest` |
-| Resource | Singular + Resource | `UserResource` |
-| Event | PascalCase + past tense | `UserRegistered` |
-| Listener | PascalCase + present tense | `SendEmailVerification` |
-| Command | PascalCase + imperative | `ProcessPayment` |
-| Job | PascalCase + imperative | `SendNewsletterEmail` |
+| Type         | Convention                 | Example                                |
+|--------------|----------------------------|----------------------------------------|
+| Controller   | Singular, PascalCase       | `UserController`                       |
+| Model        | Singular, PascalCase       | `User`                                 |
+| Migration    | snake_case                 | `2024_01_01_000000_create_users_table` |
+| Table        | Plural, snake_case         | `users`                                |
+| Column       | snake_case                 | `email_verified_at`                    |
+| Route        | Plural, kebab-case         | `/users/{user}`                        |
+| View         | kebab-case                 | `users.index`                          |
+| Config       | snake_case                 | `config('app.timezone')`               |
+| Form Request | PascalCase + Request       | `StoreUserRequest`                     |
+| Resource     | Singular + Resource        | `UserResource`                         |
+| Event        | PascalCase + past tense    | `UserRegistered`                       |
+| Listener     | PascalCase + present tense | `SendEmailVerification`                |
+| Command      | PascalCase + imperative    | `ProcessPayment`                       |
+| Job          | PascalCase + imperative    | `SendNewsletterEmail`                  |
 
 #### Eloquent Relationships
 
