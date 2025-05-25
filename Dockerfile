@@ -37,7 +37,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN install-php-extensions \
     pdo_mysql \
-    gd \
     intl \
     zip \
     opcache
@@ -54,16 +53,18 @@ RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefe
 # Copy the rest of the application code
 COPY . /app
 
-RUN rm -rf /srv/app/storage/logs/*
+RUN rm -rf /app/storage/logs/*
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy built frontend assets from the frontend-builder stage
-COPY --from=frontend-builder /app/frontend/public /srv/app/public
+COPY --from=frontend-builder /app/frontend/public /app/public
 
 # 7. Optimize Laravel for Production
-RUN php artisan config:cache
+#RUN php artisan config:cache
 RUN php artisan route:cache
 RUN php artisan view:cache
 # If you use events, uncomment the line below
 # RUN php artisan event:cache
+
+CMD ["./docker/init", "--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+PHP="$(which php)"
+
+$PHP artisan migrate --force
+$PHP artisan optimize
+$PHP artisan config:cache
+/usr/local/bin/docker-php-entrypoint "$@"
