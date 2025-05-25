@@ -6,7 +6,7 @@ namespace App\Livewire;
 
 use App\Models\Category;
 use App\Models\Sound;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -27,18 +27,23 @@ class Home extends Component
     protected $listeners = [
         'sound-started' => 'updatePlayingSoundId',
         'sound-stopped' => 'clearPlayingSoundId',
-        'favoritesUpdated' => 'updateFavoriteSounds', // Listen for updates from Alpine
+        'favoritesUpdated' => 'updateFavoriteSounds',
     ];
 
     public function __construct()
     {
-        $this->favoriteSounds = collect();
-        $this->categories = collect();
+        $this->favoriteSounds = new Collection();
+        $this->categories = new Collection();
     }
 
     public function mount(): void
     {
         $this->loadCategories();
+    }
+
+    public function hydrate(): void
+    {
+        $this->categories->loadCount('sounds');
     }
 
     /**
@@ -58,7 +63,7 @@ class Home extends Component
                 ->whereIn('id', $this->favoriteSoundIds)
                 ->get();
         } else {
-            $this->favoriteSounds = collect(); // Empty collection
+            $this->favoriteSounds = new Collection();
         }
     }
 

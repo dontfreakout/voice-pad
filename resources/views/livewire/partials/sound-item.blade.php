@@ -1,11 +1,11 @@
 @props([
     'sound',
-    'displayMode' => 'list', // This prop will now be dynamically bound from Alpine in parent components
     'showCategoryLink' => true,
-    'playingSoundId' => null // Pass playingSoundId to correctly initialize localIsPlaying
+    'playingSoundId' => null
 ])
 
 <div wire:key="sound-{{ $sound->id }}"
+     wire:loading.remove
      x-data="{
          localIsFavorite: isFavorite({{ $sound->id }}),
          localIsPlaying: String({{ $playingSoundId ?? 'null' }}) === String({{ $sound->id }})

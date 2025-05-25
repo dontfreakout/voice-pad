@@ -20,7 +20,7 @@
     @if($sounds->count() > 0)
         <div :class="{ 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4': displayMode === 'grid', 'space-y-2': displayMode === 'list' }">
             @foreach($sounds as $sound)
-                @include('livewire.partials.sound-item', ['sound' => $sound, 'displayMode' => '{{displayMode}}', 'showCategoryLink' => false])
+                @include('livewire.partials.sound-item', ['sound' => $sound, 'showCategoryLink' => false])
             @endforeach
         </div>
 
