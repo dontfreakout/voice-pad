@@ -23,7 +23,7 @@ class SoundResource extends Resource
 
     protected static ?string $navigationGroup = 'Sound Management';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $pluralModelLabel = 'Sounds';
 
@@ -126,10 +126,10 @@ class SoundResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextInputColumn::make('name')
                     ->searchable()
                     ->sortable()
-                    ->weight('medium'),
+                    ->label('Sound Name'),
 
                 Tables\Columns\TextColumn::make('category.name')
                     ->label('Category')
@@ -234,6 +234,7 @@ class SoundResource extends Resource
         return [
             'index' => Pages\ListSounds::route('/'),
             'create' => Pages\CreateSound::route('/create'),
+            'bulk-upload' => Pages\BulkUploadSounds::route('/bulk-upload'),
             'view' => Pages\ViewSound::route('/{record}'),
             'edit' => Pages\EditSound::route('/{record}/edit'),
         ];

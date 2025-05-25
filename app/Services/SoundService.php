@@ -49,6 +49,30 @@ class SoundService
     }
 
     /**
+     * Create a Sound record from an uploaded file and basic details.
+     * Used by the bulk uploader.
+     */
+    public function createSoundFromFile(UploadedFile $file, string $name, int $categoryId, ?string $description): Sound
+    {
+        $originalName = $file->getClientOriginalName();
+        $filename = $this->generateUniqueFilename($originalName);
+        $filePath = $this->storeFile($file, $filename);
+        $duration = $this->extractAudioDuration($file);
+
+        return Sound::create([
+            'name' => $name,
+            'description' => $description,
+            'file_path' => $filePath,
+            'file_name' => $originalName,
+            'mime_type' => $file->getMimeType() ?? 'audio/mpeg',
+            'file_size' => $file->getSize(),
+            'duration' => $duration,
+            'category_id' => $categoryId,
+            'sort_order' => $this->getNextSortOrder($categoryId),
+        ]);
+    }
+
+    /**
      * Update sound file if a new file is uploaded.
      *
      * @param  array<string, mixed>  $data

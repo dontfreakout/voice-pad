@@ -20,7 +20,7 @@ class CategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Sound Management';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $pluralModelLabel = 'Categories';
 
@@ -83,7 +83,6 @@ class CategoryResource extends Resource
 
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->requiresConfirmation(),

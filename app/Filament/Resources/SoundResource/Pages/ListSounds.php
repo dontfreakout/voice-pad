@@ -15,6 +15,10 @@ class ListSounds extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('bulkUpload')
+                ->label('Bulk Upload')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->url(SoundResource::getUrl('bulk-upload')),
             Actions\CreateAction::make(),
         ];
     }
