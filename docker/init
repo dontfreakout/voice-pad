@@ -5,4 +5,5 @@ PHP="$(which php)"
 $PHP artisan migrate --force
 $PHP artisan optimize
 $PHP artisan config:cache
+$PHP artisan filament:optimize
 /usr/local/bin/docker-php-entrypoint "$@"
