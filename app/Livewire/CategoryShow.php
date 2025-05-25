@@ -7,12 +7,9 @@ namespace App\Livewire;
 use App\Models\Category;
 use App\Models\Sound;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 class CategoryShow extends Component
 {
-    use WithPagination;
-
     public Category $category;
 
     /** @var array<string, mixed> */
@@ -28,8 +25,7 @@ class CategoryShow extends Component
 
     public function render(): mixed
     {
-        $sounds = Sound::where('category_id', $this->category->id)
-            ->paginate(10);
+        $sounds = Sound::where('category_id', $this->category->id)->get();
 
         return view('livewire.category-show', [
             'sounds' => $sounds,

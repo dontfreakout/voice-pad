@@ -23,10 +23,6 @@
                 @include('livewire.partials.sound-item', ['sound' => $sound, 'showCategoryLink' => false])
             @endforeach
         </div>
-
-        <div class="mt-8">
-            {{ $sounds->links() }}
-        </div>
     @else
         <p class="text-gray-600 dark:text-gray-400">No sounds found in this category yet.</p>
     @endif

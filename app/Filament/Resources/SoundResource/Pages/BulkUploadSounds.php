@@ -12,6 +12,8 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -51,9 +53,24 @@ class BulkUploadSounds extends Page
                         Select::make('category_id')
                             ->label('Category')
                             ->options(Category::query()->pluck('name', 'id'))
-                            ->required()
                             ->searchable()
-                            ->preload(),
+                            ->preload()
+                            ->required()
+                            ->createOptionForm([
+                                TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                                Textarea::make('description')
+                                    ->rows(3)
+                                    ->maxLength(1000),
+                            ])
+                            ->createOptionUsing(
+                                fn (array $data) => Category::create([
+                                    'name' => $data['name'],
+                                    'description' => $data['description'] ?? null,
+                                ])->getKey(),
+                            )
+                            ->columnSpanFull(),
                         FileUpload::make('audio_files')
                             ->label('Sound Files')
                             ->multiple()
@@ -92,7 +109,7 @@ class BulkUploadSounds extends Page
             foreach ($uploadedFiles as $file) {
                 /** @var TemporaryUploadedFile|UploadedFile $file */
                 $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $name = Str::of($name)->ucfirst()->ucsplit()->implode(' ');
+                $name = $this->beautifySoundName($name);
 
                 $soundService->createSoundFromFile(
                     $file,
@@ -133,5 +150,14 @@ class BulkUploadSounds extends Page
                 ->label('Upload Sounds')
                 ->submit('save'),
         ];
+    }
+
+    private function beautifySoundName(string $name): string
+    {
+        return Str::of($name)
+            ->ucfirst()
+            ->replace(['_', '.'], ' ')
+            ->ucsplit()
+            ->implode(' ');
     }
 }

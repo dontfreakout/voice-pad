@@ -91,7 +91,7 @@ class SoundResource extends Resource
 
                                 /** @var Sound $record */
                                 return new HtmlString("
-                                    <div class='space-y-1 text-sm'>
+                                    <div class='space-y-1 text-sm dark:text-gray-300 dark:bg-gray-800 p-4 rounded-lg'>
                                         <div><strong>Original Name:</strong> {$record->file_name}</div>
                                         <div><strong>Size:</strong> {$record->formatted_file_size}</div>
                                         <div><strong>Duration:</strong> {$record->formatted_duration}</div>

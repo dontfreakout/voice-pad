@@ -9,14 +9,14 @@ use App\Models\Sound;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Home extends Component
 {
+    use WithPagination;
+
     /** @var Collection<int, Sound> */
     public Collection $favoriteSounds;
-
-    /** @var Collection<int, Category> */
-    public Collection $categories;
 
     public ?int $playingSoundId = null;
 
@@ -33,17 +33,6 @@ class Home extends Component
     public function __construct()
     {
         $this->favoriteSounds = new Collection();
-        $this->categories = new Collection();
-    }
-
-    public function mount(): void
-    {
-        $this->loadCategories();
-    }
-
-    public function hydrate(): void
-    {
-        $this->categories->loadCount('sounds');
     }
 
     /**
@@ -67,14 +56,11 @@ class Home extends Component
         }
     }
 
-    public function loadCategories(): void
-    {
-        $this->categories = Category::withCount('sounds')->get();
-    }
-
     public function render(): mixed
     {
-        return view('livewire.home')
+        return view('livewire.home', [
+            'categories' => Category::withCount('sounds')->paginate(18),
+        ])
             ->layout('layouts.app');
     }
 }
