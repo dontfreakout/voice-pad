@@ -22,8 +22,11 @@ class SoundResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'url' => $this->file_url,
-            'size' => $this->formatted_file_size, // Using formatted_file_size accessor
-            'length' => $this->formatted_duration, // Using formatted_duration accessor
+            // Formatted file size (e.g., "1.5 MB")
+            'size' => $this->formatted_file_size,
+            // Formatted duration (e.g., "2:30" for 2 minutes and 30 seconds)
+            'length' => $this->formatted_duration,
+            // The category relationship, if loaded
             'category' => CategoryResource::make($this->whenLoaded('category')),
         ];
     }

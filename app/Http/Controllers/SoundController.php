@@ -7,8 +7,11 @@ namespace App\Http\Controllers;
 use App\Http\Resources\SoundResource;
 use App\Models\Category;
 use App\Models\Sound;
+use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+#[Group('Sounds')]
 class SoundController extends Controller
 {
     /**
@@ -26,10 +29,21 @@ class SoundController extends Controller
     }
 
     /**
-     * Display a listing of all sounds. (Optional, based on requirements)
+     * Display a listing of the sounds for given IDs.
+     *
+     * @queryParam ids array required The array of sound IDs. Example: [1, 2, 3]
      */
-    public function indexAllSounds(): AnonymousResourceCollection
+    public function indexByIds(Request $request): AnonymousResourceCollection
     {
-        return SoundResource::collection(Sound::with('category')->get());
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:sounds,id',
+        ]);
+
+        $ids = $request->query('ids');
+
+        $sounds = Sound::with('category')->whereIn('id', $ids)->get();
+
+        return SoundResource::collection($sounds);
     }
 }

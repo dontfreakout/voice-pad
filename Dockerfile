@@ -26,6 +26,8 @@ RUN npm run build
 # 1. Base Image
 FROM dunglas/frankenphp
 
+ENV MAKEFLAGS="-j$(nproc)"
+
 # 2. Install System Dependencies & PHP Extensions
 RUN apt-get update && apt-get install -y \
     git \
