@@ -7,4 +7,4 @@ use App\Livewire\Home;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', Home::class)->name('home');
-Route::get('/category/{category}', CategoryShow::class)->name('category.show');
+Route::get('/category/{category:slug}', CategoryShow::class)->name('category.show');

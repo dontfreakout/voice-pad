@@ -20,6 +20,7 @@ class CategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'slug' => $this->slug, // Added slug
             'sounds_count' => $this->whenCounted('sounds'),
             // Add other fields as necessary
         ];

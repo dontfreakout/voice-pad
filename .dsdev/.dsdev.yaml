@@ -62,9 +62,7 @@ app:
         pint: 'vendor/bin/pint'
         pint-test: 'vendor/bin/pint --test'
         pint-v: 'vendor/bin/pint -v'
-        phpstan:
-            - '@ide-helper'
-            - 'vendor/bin/phpstan analyze'
+        phpstan: 'vendor/bin/phpstan analyze'
         check:
             - '@composer-validate'
             - '@phpcbf'

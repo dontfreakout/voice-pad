@@ -11,6 +11,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class CategoryResource extends Resource
 {
@@ -32,8 +33,27 @@ class CategoryResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (?string $state, callable $set): mixed => $set('name',
-                        $state ? ucfirst($state) : '')),
+                    ->afterStateUpdated(function (?string $state, callable $set, callable $get): void {
+                        if ($state) {
+                            $set('name', ucfirst($state));
+                            $currentSlug = $get('slug');
+                            if (empty($currentSlug) || $currentSlug === Str::slug($get('name'))) {
+                                // Model handles robust slug generation
+                            }
+                        }
+                    }),
+
+                Forms\Components\TextInput::make('slug')
+                    ->maxLength(255)
+                    ->unique(table: Category::class, column: 'slug', ignoreRecord: true)
+                    ->helperText('If left empty, the slug will be generated automatically from the name. Manually entered slugs will also be formatted.')
+                    ->afterStateUpdated(function (callable $set, $state): void {
+                        if ($state !== null) {
+                            $set('slug', Str::slug($state));
+                        }
+                    })
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->placeholder('my-category-slug'),
 
                 Forms\Components\Textarea::make('description')
                     ->rows(3)
@@ -50,6 +70,11 @@ class CategoryResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
+
+                Tables\Columns\TextColumn::make('slug')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('description')
                     ->searchable()
