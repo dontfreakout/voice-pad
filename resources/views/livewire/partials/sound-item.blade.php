@@ -8,7 +8,6 @@
 <div wire:key="sound-{{ $sound->id }}"
      x-data="{
          localIsFavorite: isFavorite({{ $sound->id }}),
-         // Ensure localIsPlaying is correctly initialized based on playingSoundId prop
          localIsPlaying: String({{ $playingSoundId ?? 'null' }}) === String({{ $sound->id }})
      }"
      @favorites-updated.window="localIsFavorite = isFavorite({{ $sound->id }})"
@@ -19,10 +18,13 @@
          'flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-md shadow-sm': displayMode === 'list'
      }">
 
-    <div :class="{'flex-grow': true, 'flex items-center space-x-3': displayMode === 'list'}">
+    <div
+        @click.prevent="window.playSound('{{ $sound->file_url ?? Storage::url($sound->file_path) }}', {{ $sound->id }})"
+        title="Play {{ $sound->name }}"
+        :class="{'flex-grow': true, 'flex items-center space-x-3': displayMode === 'list'}"
+        class="cursor-pointer"
+    >
         <button
-            @click.prevent="window.playSound('{{ $sound->file_url ?? Storage::url($sound->file_path) }}', {{ $sound->id }})"
-            title="Play {{ $sound->name }}"
             :class="[
                 displayMode === 'grid' ? 'w-full mb-2' : '',
                 'flex items-center justify-center p-2 rounded-md cursor-pointer transition-colors duration-150 ease-in-out',
@@ -46,27 +48,27 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">
                 Duration: {{ $sound->duration ? gmdate('i:s', $sound->duration) : 'N/A' }}
             </p>
-            @if($showCategoryLink && $sound->category)
-                <a href="{{ route('category.show', $sound->category) }}"
-                   :class="['text-xs text-indigo-500 dark:text-indigo-400 hover:underline', displayMode === 'grid' ? 'block mt-1' : 'ml-2']">
-                    {{ $sound->category->name }}
-                </a>
-            @endif
         </div>
     </div>
 
-    <div :class="{'mt-3 pt-3 border-t border-gray-200 dark:border-gray-700': displayMode === 'grid', 'flex-shrink-0': displayMode === 'list'}">
+    <div :class="{'flex items-center': true, 'mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 justify-between': displayMode === 'grid', 'flex-shrink-0 flex-row-reverse': displayMode === 'list'}">
         <button
                 type="button"
                 @click.prevent="toggleFavorite({{ $sound->id }}); localIsFavorite = isFavorite({{ $sound->id }})"
                 title="Toggle Favorite"
-                class="p-2 rounded-md hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors duration-150 ease-in-out"
+                class="p-2 rounded-md hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors duration-150 ease-in-out cursor-pointer"
                 :class="localIsFavorite ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
             </svg>
             <span class="sr-only">Toggle Favorite</span>
         </button>
+        @if($showCategoryLink && $sound->category)
+            <a href="{{ route('category.show', $sound->category) }}"
+               :class="['text-xs text-indigo-500 dark:text-indigo-400 hover:underline', displayMode === 'grid' ? 'block mt-1' : 'ml-2']">
+                {{ $sound->category->name }}
+            </a>
+        @endif
     </div>
 </div>
 

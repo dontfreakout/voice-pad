@@ -1,6 +1,6 @@
 <div class="space-y-6" x-data="{
         displayMode: localStorage.getItem('displayMode') || 'list',
-        soundsToPreload: {{ json_encode($sounds->pluck('file_url', 'id')->map(function ($value, $key) { return $value ?? \Storage::url(App\Models\Sound::find($key)->file_path); })->all()) }},
+        soundsToPreload: {{ json_encode($sounds->pluck('file_url', 'id')->all()) }},
         preloadAudio() {
             Object.values(this.soundsToPreload).forEach(url => {
                 if (url) {
