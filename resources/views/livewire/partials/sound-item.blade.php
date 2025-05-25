@@ -5,7 +5,6 @@
 ])
 
 <div wire:key="sound-{{ $sound->id }}"
-     wire:loading.remove
      x-data="{
          localIsFavorite: isFavorite({{ $sound->id }}),
          localIsPlaying: String({{ $playingSoundId ?? 'null' }}) === String({{ $sound->id }})

@@ -2,9 +2,8 @@
      x-data="{displayMode: localStorage.getItem('displayMode') || 'list' }"
      x-init="
         if (favoriteSoundIds.length > 0) {
-            $dispatch('favoritesUpdated', {'soundIds': favoriteSoundIds});
+            $wire.updateFavoriteSounds(favoriteSoundIds);
         }
-        //$watch('displayMode', value => localStorage.setItem('displayMode', value));
      "
      @display-mode-changed.window="displayMode = $event.detail.mode">
     <!-- Favorite Sounds -->
@@ -13,7 +12,8 @@
         <h2 class="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Favorite Sounds</h2>
             <div
                 :class="{ 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6  gap-4': displayMode === 'grid', 'space-y-2': displayMode === 'list' }">
-                <div wire:loading.delay
+                <div wire:loading
+                     wire:target="updateFavoriteSounds"
                     :class="{'loader-grid h-52': displayMode === 'grid', 'loader-list h-18': displayMode === 'list'}"
                      class="skeleton-loader rounded-lg shadow-sm"></div>
                 @foreach($favoriteSounds as $sound)
