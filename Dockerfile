@@ -12,7 +12,6 @@ RUN npm install --legacy-peer-deps
 # Copy frontend configuration and source files
 # Ensure these files/directories are at the root or adjust paths accordingly relative to your Docker build context
 COPY vite.config.js ./
-COPY .env ./
 COPY resources/ ./resources
 COPY public/ ./public
 # If you have tailwind.config.js at the root of your project, uncomment the next line
