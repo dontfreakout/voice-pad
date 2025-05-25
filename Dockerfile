@@ -38,17 +38,13 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libgd-dev \
+    libpq-dev \
     ffmpeg \
     zip \
     unzip \
     && docker-php-ext-install pdo_mysql gd exif pcntl bcmath opcache intl zip pdo_pgsql \
     && pecl install redis \
-    && docker-php-ext-enable pdo_mysql \
     && docker-php-ext-enable redis \
-    && docker-php-ext-enable exif \
-    && docker-php-ext-enable opcache \
-    && docker-php-ext-enable intl \
-    && docker-php-ext-enable pdo_pgsql \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 3. Install Composer
