@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
-    <div v-if="pending && !categoryData">Loading category details...</div>
-    <div v-else-if="error">Error loading category: {{ error.message }}</div>
+    <div v-if="pendingCategoryData && !categoryData">Loading category details...</div>
+    <div v-else-if="categoryError">Error loading category: {{ categoryError.message }}</div>
     <div v-else-if="categoryData && categoryData.category">
       <div class="flex justify-between items-center">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-white">{{ categoryData.category.name }}</h1>
@@ -10,27 +10,21 @@
 
       <p v-if="categoryData.category.description" class="text-gray-700 dark:text-gray-300 mb-6">{{ categoryData.category.description }}</p>
 
-      <div v-if="pending && !categoryData.sounds" class="text-center py-4">Loading sounds...</div>
-      <div v-else-if="categoryData.sounds && categoryData.sounds.data && categoryData.sounds.data.length > 0">
+      <div v-if="pendingSounds && !displayedSounds.length" class="text-center py-4">Loading sounds...</div>
+      <div v-else-if="soundFetchError" class="text-red-500 dark:text-red-400">Error loading sounds: {{ soundFetchError.message }}</div>
+      <div v-else-if="displayedSounds.length > 0">
         <h2 class="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">Sounds</h2>
-        <div :class="{ 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4': displayMode === 'grid', 'space-y-2': displayMode === 'list' }">
-          <SoundItem v-for="sound in categoryData.sounds.data"
+        <div :class="{ 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4': uiStore.getDisplayMode === 'grid', 'space-y-2': uiStore.getDisplayMode === 'list' }">
+          <SoundItem v-for="sound in displayedSounds"
                      :key="sound.id"
                      :sound="sound"
-                     :playingSoundId="currentlyPlayingSoundId"
-                     :displayMode="displayMode"
                      :showCategoryLink="false"
-                     :isFavorite="isSoundFavorite(sound.id)"
-                     @sound-play-requested="handlePlayRequest"
-                     @sound-pause-requested="handlePauseRequest"
-                     @sound-ended="handleSoundEnded"
-                     @toggle-favorite="handleToggleFavorite"
-                     ref="soundItemsRefs"
                      />
+                     <!-- SoundItem now gets its state (playing, favorite, displayMode) from Pinia stores directly -->
         </div>
         <!-- Pagination for sounds -->
-         <div class="mt-8" v-if="categoryData.sounds.meta && categoryData.sounds.meta.links && categoryData.sounds.meta.total > categoryData.sounds.meta.per_page">
-            <button v-for="link in categoryData.sounds.meta.links" :key="link.label"
+         <div class="mt-8" v-if="paginationMeta && paginationMeta.links && paginationMeta.total > paginationMeta.per_page">
+            <button v-for="link in paginationMeta.links" :key="link.label"
                     @click="fetchPaginatedSounds(link.url)"
                     :disabled="!link.url || link.active"
                     :class="{ 'bg-indigo-600 text-white': link.active, 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300': !link.active && link.url, 'text-gray-400 dark:text-gray-500 cursor-not-allowed': !link.url }"
@@ -41,176 +35,129 @@
       </div>
       <p v-else class="text-gray-600 dark:text-gray-400">No sounds found in this category yet.</p>
     </div>
-     <div v-else-if="!pending" class="text-center py-10">
+     <div v-else-if="!pendingCategoryData" class="text-center py-10">
       <p class="text-xl text-gray-500 dark:text-gray-400">Category not found.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import SoundItem from '~/components/SoundItem.vue'; // Import SoundItem
+import { ref, watch, onMounted } from 'vue';
+import { useRoute, onBeforeRouteUpdate } from 'vue-router'; // Import onBeforeRouteUpdate for Nuxt 3
+import { useUiStore } from '~/stores/ui';
+// useFavoritesStore is not directly needed here if SoundItem handles its own favorite logic via the store.
+// However, initFavoriteSoundIds is called by the plugin.
+import SoundItem from '~/components/SoundItem.vue';
+import type { Sound, Category } from '~/types';
 
+const uiStore = useUiStore();
 const route = useRoute();
-const categoryData = ref(null); // Will hold { category: {...}, sounds: { data: [...], meta: {...} } }
-const pending = ref(true);
-const error = ref(null);
-const categoryId = route.params.id;
-const currentSoundsPage = ref(1);
-const currentlyPlayingSoundId = ref(null);
-const soundItemsRefs = ref([]); // To call methods on SoundItem instances
-const favoriteSoundIds = ref([]); // For managing favorites
 
-// Local displayMode, ideally this would come from a shared state (Pinia store or provide/inject)
-const displayMode = ref('list');
+const categoryData = ref(null); // Holds { category: Category, sounds: Sound[] } or similar from main API
+const pendingCategoryData = ref(true);
+const categoryError = ref(null);
 
-onMounted(() => {
-  const savedMode = localStorage.getItem('displayMode');
-  if (savedMode) {
-    displayMode.value = savedMode;
-  }
-  // Listen for display mode changes from the header
-  window.addEventListener('display-mode-changed', (event) => {
-    displayMode.value = event.detail.mode;
-  });
+const displayedSounds = ref([]); // Holds the sounds for the current page (pagination)
+const paginationMeta = ref(null); // For pagination links
+const pendingSounds = ref(false); // Specifically for pagination loading state
+const soundFetchError = ref(null); // Specifically for pagination/sound fetch errors
 
-  fetchCategoryDetails();
-
-  loadFavoriteIdsFromLocalStorage();
-  // Listen for global favorite changes emitted by other components (like FavoriteSounds.vue or other SoundItem instances)
-  window.addEventListener('favorites-updated-globally', (event) => {
-    if (event.detail && Array.isArray(event.detail.favoriteIds)) {
-      favoriteSoundIds.value = event.detail.favoriteIds;
-    }
-  });
-});
-
-const loadFavoriteIdsFromLocalStorage = () => {
-  const storedIds = localStorage.getItem('favoriteSoundIds');
-  if (storedIds) {
-    favoriteSoundIds.value = JSON.parse(storedIds);
-  }
-};
-
-const saveFavoriteIdsToLocalStorage = () => {
-  localStorage.setItem('favoriteSoundIds', JSON.stringify(favoriteSoundIds.value));
-};
-
-watch(favoriteSoundIds, saveFavoriteIdsToLocalStorage, { deep: true });
-
-watch(() => route.params.id, (newId) => {
-  // This watcher might not be strictly necessary if the page fully reloads on param change,
-  // but good for handling client-side navigations to the same page with different params.
-  if (newId && newId !== categoryId) { // Ensure newId is different to avoid re-fetch on same page load
-    // categoryId = newId; // categoryId is a const from route.params.id, it will be updated on next route enter
-    currentSoundsPage.value = 1; // Reset page for new category
-    currentlyPlayingSoundId.value = null; // Stop sound when navigating
-    fetchCategoryDetails();
-  }
-});
+const categoryId = ref(route.params.id);
+const currentPage = ref(route.query.page ? parseInt(route.query.page) : 1);
 
 
-async function fetchCategoryDetails(url) {
-  // If no URL is provided, construct the initial URL
-  if (!url) {
-    url = `/api/categories/${route.params.id}/sounds?page=${currentSoundsPage.value}`;
-  }
+async function fetchCategoryAndSoundsData(catId, page = 1) {
+  pendingCategoryData.value = page === 1; // Only true pending for initial load of category
+  pendingSounds.value = true;
+  categoryError.value = null;
+  soundFetchError.value = null;
 
-  pending.value = true;
-  // error.value = null; // Keep previous error for a moment if categoryData exists
   try {
-    const { data, error: fetchError, pending: dataPending } = await useFetch(url, {
-      key: url, // Ensures re-fetch when URL changes (e.g., pagination)
+    // Using $fetch which is auto-imported in Nuxt 3 / available globally
+    // Assuming API returns category details and first page of sounds together,
+    // or just sounds if page > 1
+    const { data: result, error: fetchErrorVal, pending: pendingVal } = await useFetch(`/api/categories/${catId}/sounds?page=${page}`, {
+      key: `category-${catId}-page-${page}`, // Unique key for this request
+      // initialCache: false, // Consider caching strategy
     });
 
-    // Watch for data changes
-    watch(data, (newData) => {
-      if (newData) {
-        if (currentSoundsPage.value === 1 || !categoryData.value?.category) {
-           categoryData.value = newData;
-        } else if (categoryData.value) {
-          categoryData.value.sounds = newData.sounds || newData;
-        }
-      }
-    }, { immediate: true }); // immediate: true to run watcher on initial data load
+    // This watcher pattern for useFetch is a bit unusual here.
+    // Typically, you'd await useFetch and then work with its reactive data/error/pending refs.
+    // Let's simplify to directly use the reactive refs from useFetch.
 
-    // Watch for error changes
-    watch(fetchError, (newError) => {
-      if (newError) {
-        error.value = newError;
-      }
-    }, { immediate: true });
+    if (fetchErrorVal.value) throw fetchErrorVal.value;
 
-    // Watch for pending state changes
-    watch(dataPending, (newPending) => {
-        pending.value = newPending;
-    }, { immediate: true });
+    // Assuming result.value has a structure like:
+    // { category: Category, sounds: { data: Sound[], meta: PaginationMeta } } for page 1
+    // OR { sounds: { data: Sound[], meta: PaginationMeta } } for subsequent pages
+
+    if (result.value) {
+      if (page === 1 && result.value.category) {
+        categoryData.value = { category: result.value.category };
+      }
+      if (result.value.sounds) {
+        displayedSounds.value = result.value.sounds.data || [];
+        paginationMeta.value = result.value.sounds.meta || null;
+      } else if (Array.isArray(result.value.data)) { // Fallback if sounds are in result.data directly
+        displayedSounds.value = result.value.data;
+        paginationMeta.value = result.value.meta || null;
+      }
+    } else {
+      // Handle case where result.value is null (e.g. 404 for category not found on initial load)
+       if (page === 1) categoryData.value = null; // Clear category data if not found
+       displayedSounds.value = [];
+       paginationMeta.value = null;
+    }
 
   } catch (e) {
-    error.value = e;
-    pending.value = false;
+    console.error("Error fetching category/sounds data:", e);
+    if (page === 1) categoryError.value = e; else soundFetchError.value = e;
+    displayedSounds.value = []; // Clear sounds on error
+    if (page === 1) categoryData.value = null;
+  } finally {
+    pendingCategoryData.value = false;
+    pendingSounds.value = false;
   }
 }
 
 function fetchPaginatedSounds(url) {
   if (url) {
     const urlParams = new URLSearchParams(new URL(url).search);
-    currentSoundsPage.value = parseInt(urlParams.get('page') || '1', 10);
-    // When paginating, we don't want to reset the currently playing sound unless it's not in the new page
-    fetchCategoryDetails(url);
+    const newPage = parseInt(urlParams.get('page') || '1', 10);
+    currentPage.value = newPage;
+    // Update route query param for history/bookmarks, without triggering full navigation if possible
+    // This might be better handled by NuxtLink pagination or router.push for query changes
+    // For now, just fetch:
+    fetchCategoryAndSoundsData(categoryId.value, newPage);
   }
 }
 
-function handlePlayRequest({ id, audioInstance }) {
-  if (currentlyPlayingSoundId.value && currentlyPlayingSoundId.value !== id) {
-    // Find the SoundItem instance of the currently playing sound and pause it
-    const currentSoundItem = soundItemsRefs.value.find(item => item.id === currentlyPlayingSoundId.value);
-    if (currentSoundItem && typeof currentSoundItem.pauseSound === 'function') {
-      currentSoundItem.pauseSound();
-    }
+onMounted(() => {
+  fetchCategoryAndSoundsData(categoryId.value, currentPage.value);
+});
+
+// Handle route parameter changes (e.g., navigating from one category to another directly)
+onBeforeRouteUpdate(async (to, from) => {
+  if (to.params.id !== from.params.id) {
+    categoryId.value = to.params.id;
+    currentPage.value = to.query.page ? parseInt(to.query.page) : 1;
+    // Reset states before fetching new category data
+    categoryData.value = null;
+    displayedSounds.value = [];
+    paginationMeta.value = null;
+    await fetchCategoryAndSoundsData(categoryId.value, currentPage.value);
+  } else if (to.query.page !== from.query.page) {
+    // Handle only page changes if category ID is the same
+    currentPage.value = to.query.page ? parseInt(to.query.page) : 1;
+    await fetchCategoryAndSoundsData(categoryId.value, currentPage.value);
   }
+});
 
-  currentlyPlayingSoundId.value = id;
-  // The SoundItem itself will call audioInstance.play() when its playingSoundId prop updates.
-  // Or, we can call it here if direct control is preferred, but prop-driven is more Vue-idiomatic.
-  // const newSoundItem = soundItemsRefs.value.find(item => item.id === id);
-  // if (newSoundItem && typeof newSoundItem.playSound === 'function') {
-  //   newSoundItem.playSound();
-  // }
-}
 
-function handlePauseRequest(id) {
-  if (currentlyPlayingSoundId.value === id) {
-    // The SoundItem itself handles pausing its audio.
-    // We just update the global state here.
-    currentlyPlayingSoundId.value = null;
-  }
-}
-
-function handleSoundEnded(id) {
-  if (currentlyPlayingSoundId.value === id) {
-    currentlyPlayingSoundId.value = null;
-  }
-}
-
-function isSoundFavorite(soundId) {
-  return favoriteSoundIds.value.includes(soundId);
-}
-
-function handleToggleFavorite(soundId) {
-  const index = favoriteSoundIds.value.indexOf(soundId);
-  if (index > -1) {
-    favoriteSoundIds.value.splice(index, 1);
-  } else {
-    favoriteSoundIds.value.push(soundId);
-  }
-  // Dispatch a global event so other components (like FavoriteSounds.vue) can update
-  window.dispatchEvent(new CustomEvent('favorites-updated-globally', {
-    detail: { favoriteIds: [...favoriteSoundIds.value] }
-  }));
-}
-
+// Removed local displayMode (uiStore.getDisplayMode is used in template)
+// Removed local favoriteSoundIds and related logic (SoundItem uses favoritesStore)
+// Removed currentlyPlayingSoundId and playback handling (SoundItem uses uiStore)
+// Removed window event listeners (handled by stores/plugins)
 </script>
 
 <style scoped>

@@ -1,9 +1,9 @@
 <template>
   <div :class="itemClasses">
-    <div @click.prevent="togglePlayback" title="Play/Pause" :class="clickableAreaClasses" class="cursor-pointer">
+    <div @click.prevent="handlePlaybackToggle" title="Play/Pause Sound" :class="clickableAreaClasses" class="cursor-pointer">
       <button :class="playButtonClasses">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <g v-if="isCurrentlyPlaying">
+          <g v-if="isThisSoundPlaying">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10v4M15 10v4" />
           </g>
@@ -12,11 +12,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </g>
         </svg>
-        <span class="sr-only">{{ isCurrentlyPlaying ? 'Pause' : 'Play' }}</span>
+        <span class="sr-only">{{ isThisSoundPlaying ? 'Pause' : 'Play' }}</span>
       </button>
 
-      <div :class="{'text-center': props.displayMode === 'grid'}">
-        <h3 :class="['font-semibold text-gray-800 dark:text-white', props.displayMode === 'grid' ? 'text-md mb-1' : 'text-lg']">{{ sound.name }}</h3>
+      <div :class="{'text-center': currentDisplayMode === 'grid'}">
+        <h3 :class="['font-semibold text-gray-800 dark:text-white', currentDisplayMode === 'grid' ? 'text-md mb-1' : 'text-lg']">{{ sound.name }}</h3>
         <p class="text-xs text-gray-500 dark:text-gray-400">
           Duration: {{ formattedDuration }}
         </p>
@@ -26,10 +26,10 @@
     <div :class="footerClasses">
       <button
         type="button"
-        @click.prevent="toggleFavoritePlaceholder"
+        @click.prevent="handleFavoriteToggle"
         title="Toggle Favorite"
         class="p-2 rounded-md hover:text-red-500 dark:hover:text-red-400 focus:outline-none transition-colors duration-150 ease-in-out cursor-pointer"
-        :class="isFavoritePlaceholder ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'">
+        :class="isThisSoundFavorite ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
         </svg>
@@ -37,7 +37,7 @@
       </button>
       <NuxtLink v-if="props.showCategoryLink && sound.category"
              :to="`/categories/${sound.category.id}`"
-             :class="['text-xs text-indigo-500 dark:text-indigo-400 hover:underline', props.displayMode === 'grid' ? 'block mt-1' : 'ml-2']">
+             :class="['text-xs text-indigo-500 dark:text-indigo-400 hover:underline', currentDisplayMode === 'grid' ? 'block mt-1' : 'ml-2']">
         {{ sound.category.name }}
       </NuxtLink>
     </div>
@@ -45,160 +45,152 @@
 </template>
 
 <script setup>
-import { defineProps, ref, computed, onMounted, onUnmounted, watch, defineEmits } from 'vue';
+import { defineProps, ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useUiStore } from '~/stores/ui';
+import { useFavoritesStore } from '~/stores/favorites';
+import type { Sound } from '~/types';
 
 const props = defineProps({
   sound: {
-    type: Object,
+    type: Object as () => Sound,
     required: true,
   },
-  playingSoundId: {
-    type: [String, Number, null],
-    default: null,
-  },
-  displayMode: {
-    type: String,
-    default: 'list', // 'list' or 'grid'
-  },
-  showCategoryLink: {
+  showCategoryLink: { // This prop can remain as it's purely presentational
     type: Boolean,
     default: true,
-  },
-  isFavorite: { // New prop to indicate if the sound is a favorite
-    type: Boolean,
-    default: false,
   }
+  // Removed playingSoundId, isFavorite, displayMode props as they come from stores now
 });
 
-const emit = defineEmits(['sound-play-requested', 'sound-pause-requested', 'sound-ended', 'toggle-favorite']); // Added 'toggle-favorite'
+const uiStore = useUiStore();
+const favoritesStore = useFavoritesStore();
 
-const audio = ref(null);
-const internalIsPlaying = ref(false); // Tracks if this specific audio instance is playing
-const duration = ref(props.sound.duration_seconds || 0); // Expect duration in seconds
+// This specific audio instance for this sound item.
+// It's created on demand when play is requested for this item.
+const localAudioInstance = ref(null);
+const duration = ref(props.sound.duration_seconds || 0);
 
-// No longer a placeholder, directly use the prop
-// const isFavoritePlaceholder = ref(false);
+const currentDisplayMode = computed(() => uiStore.getDisplayMode);
+const isThisSoundPlaying = computed(() => uiStore.isPlaying(props.sound.id));
+const isThisSoundFavorite = computed(() => favoritesStore.isFavorite(props.sound.id));
 
 const formattedDuration = computed(() => {
   const totalSeconds = Number(duration.value);
-  if (isNaN(totalSeconds) || totalSeconds === 0) return 'N/A';
+  if (isNaN(totalSeconds) || totalSeconds === 0) return 'N/A'; // Or props.sound.duration_formatted if available
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
   return `${minutes}:${seconds}`;
 });
 
-// This computed property determines if this sound is the one currently marked as playing globally
-const isCurrentlyPlaying = computed(() => props.playingSoundId === props.sound.id && internalIsPlaying.value);
+const createAndSetupAudioInstance = () => {
+  if (!props.sound.file_url) return null;
+  const audio = new Audio(props.sound.file_url);
+  audio.addEventListener('loadedmetadata', () => {
+    if (audio) duration.value = audio.duration;
+  });
+  audio.addEventListener('ended', () => {
+    uiStore.handleSoundEnded(props.sound.id);
+  });
+  audio.preload = 'metadata'; // Preload metadata for duration
+  return audio;
+};
+
+function handlePlaybackToggle() {
+  if (isThisSoundPlaying.value) { // If this sound is currently playing (according to store), then pause it
+    uiStore.pauseCurrentSound();
+  } else { // If this sound is not playing or another sound is playing
+    if (!localAudioInstance.value || localAudioInstance.value.src !== props.sound.file_url) {
+      // If instance doesn't exist, or is for a different sound (e.g. prop changed), create new one
+      if (localAudioInstance.value) { // Clean up old instance if any
+          localAudioInstance.value.removeEventListener('ended', () => uiStore.handleSoundEnded(props.sound.id));
+      }
+      localAudioInstance.value = createAndSetupAudioInstance();
+    }
+    if (localAudioInstance.value) {
+      uiStore.setPlayingSound(props.sound.id, localAudioInstance.value);
+    }
+  }
+}
+
+function handleFavoriteToggle() {
+  favoritesStore.toggleFavorite(props.sound.id);
+  // If the sound was just added to favorites, and we want to update the detailed favoriteSounds list in the store:
+  if (favoritesStore.isFavorite(props.sound.id)) {
+      // Option 1: Fetch all favorites again (might be too heavy)
+      // favoritesStore.fetchFavoriteSounds();
+      // Option 2: Add this specific sound object to the store's list if not already there by full object
+      // This assumes `props.sound` is a complete Sound object.
+      favoritesStore.addSoundToFavoritesList(props.sound);
+  }
+}
 
 onMounted(() => {
-  if (props.sound.file_url) {
-    audio.value = new Audio(props.sound.file_url);
-    audio.value.addEventListener('ended', handleSoundEnded);
-    audio.value.addEventListener('loadedmetadata', () => {
-      if (audio.value) {
-        duration.value = audio.value.duration;
-      }
+  // If sound duration is not initially provided, try to load it if file_url exists
+  // This helps if the parent component doesn't pass duration_seconds
+  if (!duration.value && props.sound.file_url) {
+    const audioForDuration = new Audio(props.sound.file_url);
+    audioForDuration.addEventListener('loadedmetadata', () => {
+      duration.value = audioForDuration.duration;
     });
-    // Preload metadata
-    audio.value.preload = 'metadata';
+    // No need to keep this audioForDuration instance beyond getting metadata.
   }
 });
 
 onUnmounted(() => {
-  if (audio.value) {
-    audio.value.removeEventListener('ended', handleSoundEnded);
-    audio.value.pause();
-    audio.value = null;
+  // If this sound item's audio instance is the one currently playing in the store,
+  // and the component is unmounted, we should stop it to prevent leaks.
+  if (uiStore.currentlyPlayingSoundId === props.sound.id && localAudioInstance.value === uiStore.currentAudioInstance) {
+    uiStore.stopCurrentSound();
+  }
+  // Clean up local audio instance if it exists
+  if (localAudioInstance.value) {
+    localAudioInstance.value.removeEventListener('ended', () => uiStore.handleSoundEnded(props.sound.id));
+    localAudioInstance.value.pause(); // Ensure it's paused
+    localAudioInstance.value = null;
   }
 });
 
-function togglePlayback() {
-  if (!audio.value) return;
-
-  if (internalIsPlaying.value) { // If this sound is currently playing, pause it
-    audio.value.pause();
-    internalIsPlaying.value = false;
-    emit('sound-pause-requested', props.sound.id);
-  } else { // If this sound is not playing, request to play it
-    // Parent component will handle stopping other sounds
-    emit('sound-play-requested', { id: props.sound.id, audioInstance: audio.value });
-    // internalIsPlaying will be set to true once parent confirms playback via playingSoundId prop change
-  }
-}
-
-function handleSoundEnded() {
-  internalIsPlaying.value = false;
-  emit('sound-ended', props.sound.id);
-}
-
-function handleToggleFavorite() {
-  emit('toggle-favorite', props.sound.id);
-}
-
-// Watch for changes in playingSoundId prop from parent
-watch(() => props.playingSoundId, (newPlayingId) => {
-  if (newPlayingId === props.sound.id) {
-    // If this sound is now the globally playing sound, and it's not already playing internally, play it.
-    if (!internalIsPlaying.value && audio.value) {
-      audio.value.play().catch(error => console.error("Error playing sound:", error));
-      internalIsPlaying.value = true;
+// Watcher to ensure localAudioInstance is managed if the sound source changes (e.g. list virtualization)
+watch(() => props.sound.id, () => {
+    if (localAudioInstance.value) {
+        if (uiStore.currentlyPlayingSoundId === props.sound.id && localAudioInstance.value === uiStore.currentAudioInstance) {
+            uiStore.stopCurrentSound();
+        }
+        localAudioInstance.value.removeEventListener('ended', () => uiStore.handleSoundEnded(props.sound.id));
+        localAudioInstance.value.pause();
+        localAudioInstance.value = null; // Reset for the new sound prop
     }
-  } else {
-    // If another sound is now playing globally, and this sound was playing, pause it.
-    if (internalIsPlaying.value && audio.value) {
-      audio.value.pause();
-      internalIsPlaying.value = false;
-    }
-  }
+    duration.value = props.sound.duration_seconds || 0; // Reset duration
 });
 
-// Dynamic classes based on display mode
+
+// Dynamic classes based on display mode from store
 const itemClasses = computed(() => ({
   'sound-item': true,
-  'bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow duration-200 flex flex-col justify-between': props.displayMode === 'grid',
-  'flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-md shadow-sm': props.displayMode === 'list'
+  'bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow duration-200 flex flex-col justify-between': currentDisplayMode.value === 'grid',
+  'flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-md shadow-sm': currentDisplayMode.value === 'list'
 }));
 
 const clickableAreaClasses = computed(() => ({
   'flex-grow': true,
-  'flex items-center space-x-3': props.displayMode === 'list',
-  'flex flex-col items-center w-full': props.displayMode === 'grid', // Ensure button and text are centered in grid
+  'flex items-center space-x-3': currentDisplayMode.value === 'list',
+  'flex flex-col items-center w-full': currentDisplayMode.value === 'grid',
 }));
 
 const playButtonClasses = computed(() => [
-  props.displayMode === 'grid' ? 'w-full mb-2' : '',
+  currentDisplayMode.value === 'grid' ? 'w-full mb-2' : '',
   'flex items-center justify-center p-2 rounded-md cursor-pointer transition-colors duration-150 ease-in-out',
-  isCurrentlyPlaying.value ? 'bg-green-500 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+  isThisSoundPlaying.value ? 'bg-green-500 text-white' : 'bg-indigo-500 hover:bg-indigo-600 text-white'
 ]);
 
 const footerClasses = computed(() => ({
   'flex items-center': true,
-  'mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 justify-between w-full': props.displayMode === 'grid', // Ensure footer spans width in grid
-  'flex-shrink-0 flex-row-reverse': props.displayMode === 'list'
+  'mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 justify-between w-full': currentDisplayMode.value === 'grid',
+  'flex-shrink-0 flex-row-reverse': currentDisplayMode.value === 'list'
 }));
-
-// Expose methods for parent if direct control is needed (though event-based is preferred)
-defineExpose({
-  id: props.sound.id,
-  pauseSound: () => {
-    if (audio.value && internalIsPlaying.value) {
-      audio.value.pause();
-      internalIsPlaying.value = false;
-    }
-  },
-  playSound: () => {
-     if (audio.value && !internalIsPlaying.value) {
-        audio.value.play().catch(error => console.error("Error playing sound:", error));
-        internalIsPlaying.value = true;
-     }
-  }
-});
 
 </script>
 
 <style scoped>
 /* Minimal specific styles, relying on Tailwind utility classes */
-.sound-item {
-  /* Base class for easier selection if needed, though not strictly necessary with dynamic classes */
-}
 </style>

@@ -5,5 +5,8 @@ export default defineNuxtConfig({
     // Vite config for Laravel integration
     // This might need further adjustments based on your specific setup
   },
+  modules: [
+    '@pinia/nuxt',
+  ],
   // My Nuxt config
 })

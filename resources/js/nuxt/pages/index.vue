@@ -1,68 +1,29 @@
 <template>
   <div class="space-y-8">
     <!-- Favorite Sounds Section -->
-    <FavoriteSounds
-      :playingSoundId="currentlyPlayingSoundId"
-      :displayMode="displayMode"
-      @update:playingSoundId="updatePlayingSoundId"
-    />
+    <FavoriteSounds />
+    <!-- FavoriteSounds component now uses Pinia stores directly for its state and for SoundItem interactions -->
 
     <!-- Categories Section -->
     <CategoryList />
-
-    <!--
-      Note: SoundItem instances are children of FavoriteSounds or CategoryShow pages.
-      Playback control logic (play/pause/ended events) should be handled within those parent components
-      or by FavoriteSounds itself if it directly uses SoundItem.
-      This index page will primarily manage the currentlyPlayingSoundId for sounds played from FavoriteSounds.
-      If CategoryList were to render SoundItems directly (it doesn't currently),
-      then this page would also need to handle its sound events.
-    -->
+    <!-- CategoryList renders links. SoundItems on category pages will use Pinia stores. -->
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+// Pinia stores are initialized by the plugin (store-init.client.ts).
+// Components (FavoriteSounds, SoundItem via CategoryList->CategoryPage) now use these stores directly.
+// Therefore, this page no longer needs to manage currentlyPlayingSoundId or displayMode locally.
+
 import FavoriteSounds from '~/components/FavoriteSounds.vue';
 import CategoryList from '~/components/CategoryList.vue';
 
-const currentlyPlayingSoundId = ref(null);
-const displayMode = ref('list'); // Default display mode
-
-// Update playing sound ID
-function updatePlayingSoundId(soundId) {
-  // This function is called by @update:playingSoundId from FavoriteSounds
-  // It means a sound within FavoriteSounds has either started or stopped.
-  // If soundId is null, it means the sound stopped or ended.
-  // If soundId is not null, it's the ID of the sound that just started.
-
-  // If a sound is playing, and a new soundId comes (not null and different),
-  // we might need to explicitly stop the old sound if FavoriteSounds doesn't handle it internally.
-  // However, FavoriteSounds and CategoryShow pages are designed to manage their own children SoundItems,
-  // including stopping a sound when another starts within their own scope.
-  // This top-level currentlyPlayingSoundId is more for knowing *which* sound is playing globally.
-  currentlyPlayingSoundId.value = soundId;
-}
-
-
-// Handle display mode changes
-const handleDisplayModeChange = (event) => {
-  displayMode.value = event.detail.mode;
-};
-
-onMounted(() => {
-  // Initialize displayMode from localStorage
-  const savedMode = localStorage.getItem('displayMode');
-  if (savedMode) {
-    displayMode.value = savedMode;
-  }
-  // Listen for display mode changes from the header
-  window.addEventListener('display-mode-changed', handleDisplayModeChange);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('display-mode-changed', handleDisplayModeChange);
-});
+// No page-specific logic needed here for playback or display mode,
+// as child components and stores handle this.
+// The plugin store-init.client.ts handles calling:
+// uiStore.initDisplayMode();
+// favoritesStore.initFavoriteSoundIds();
+// FavoriteSounds.vue handles fetching its own data based on store state.
 
 </script>
 
