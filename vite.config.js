@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
+import vue from '@vitejs/plugin-vue'; // Import the Vue plugin
 
 export default defineConfig({
     plugins: [
@@ -9,6 +10,7 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
+        vue(), // Add the Vue plugin
     ],
     server: {
         ...(process.env?.VIRTUAL_HOST ? { host: "0.0.0.0" } : { host: "127.0.0.1" }),
@@ -17,5 +19,12 @@ export default defineConfig({
         strictPort: true,
         https: false,
         cors: true,
+        proxy: { // Add proxy configuration
+            '/api': {
+                target: 'http://localhost:8000', // Assuming Laravel runs on port 8000
+                changeOrigin: true,
+                secure: false,
+            },
+        },
     },
 });

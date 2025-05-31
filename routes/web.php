@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Livewire\CategoryShow;
-use App\Livewire\Home;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', Home::class)->name('home');
-Route::get('/category/{category:slug}', CategoryShow::class)->name('category.show');
+// Catch-all route to serve the Nuxt.js application
+// Ensure that 'spa' view loads the Nuxt app.
+// This might have been named 'welcome.blade.php' or similar during Laravel/Nuxt setup.
+Route::get('/{any?}', function () {
+    return view('spa'); // Replace 'spa' with your actual Nuxt hosting blade file if different
+})->where('any', '.*')->name('nuxt.app');
