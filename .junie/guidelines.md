@@ -18,47 +18,11 @@ This document provides a structured workflow for an AI assistant developing feat
 
 ## Environment Setup Verification
 
-Before starting any development task, verify the environment is properly configured:
-
+Anytime you want to run artisan command, you MUST use the Docker container to ensure the environment is consistent and dependencies are correctly loaded.
+### Example:
+for `php artisan migrate` command, use:
 ```bash
-# Check Composer dependencies are installed
-docker compose exec -it app composer install
-
-# Check NPM dependencies are installed
-docker compose exec -it node npm install
-
-# Ensure Livewire 3 is properly installed
-docker compose exec -it app php artisan about | grep Livewire
-
-# Generate IDE helper files for better code completion
-docker compose exec -it app php artisan ide-helper:generate
-docker compose exec -it app php artisan ide-helper:models --write
-docker compose exec -it app php artisan ide-helper:meta
-
-# Clear all caches to ensure fresh state
-docker compose exec -it app php artisan cache:clear
-docker compose exec -it app php artisan config:clear
-docker compose exec -it app php artisan route:clear
-docker compose exec -it app php artisan view:clear
-docker compose exec -it app php artisan livewire:clear-cached-components
-
-# Run initial code quality checks
-docker compose exec -it app ./vendor/bin/pint --test
-docker compose exec -it app ./vendor/bin/phpstan analyze
-```
-
-### Livewire 3 Environment Verification
-
-```bash
-# Verify Livewire 3 installation and configuration
-docker compose exec -it app php artisan livewire:check
-
-# Test basic Livewire functionality
-docker compose exec -it app php artisan make:livewire TestComponent
-docker compose exec -it app php artisan route:list | grep livewire
-
-# Clean up test component
-docker compose exec -it app php artisan livewire:delete TestComponent
+docker compose exec -it app php artisan migrate
 ```
 
 ## Problem Analysis Framework
