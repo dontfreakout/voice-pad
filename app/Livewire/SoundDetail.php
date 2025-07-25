@@ -29,7 +29,14 @@ class SoundDetail extends Component
 
     public function render()
     {
-        return view('livewire.sound-detail')
-            ->layout('layouts.app');
+        // Set page title
+        $title = $this->sound->name . ' - ' . config('app.name', 'VoicePad');
+        
+        return view('livewire.sound-detail', [
+            'pageTitle' => $title,
+        ])
+            ->layout('layouts.app', [
+                'title' => $title,
+            ]);
     }
 }

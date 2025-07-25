@@ -1,3 +1,32 @@
+@push('head')
+    <!-- Open Graph Protocol meta tags for sound/music -->
+    <meta property="og:title" content="{{ $sound->name }}">
+    <meta property="og:type" content="music.song">
+    <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:audio" content="{{ $sound->file_url }}">
+    <meta property="og:audio:type" content="{{ $sound->mime_type }}">
+    @if($sound->description)
+    <meta property="og:description" content="{{ $sound->description }}">
+    @endif
+    @if($sound->category)
+    <meta property="music:genre" content="{{ $sound->category->name }}">
+    @endif
+    @if($sound->duration)
+    <meta property="music:duration" content="{{ (int)$sound->duration }}">
+    @endif
+    <meta property="og:site_name" content="{{ config('app.name', 'VoicePad') }}">
+    
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="player">
+    <meta name="twitter:title" content="{{ $sound->name }}">
+    @if($sound->description)
+    <meta name="twitter:description" content="{{ $sound->description }}">
+    @endif
+    <meta name="twitter:player" content="{{ $sound->file_url }}">
+    <meta name="twitter:player:width" content="320">
+    <meta name="twitter:player:height" content="240">
+@endpush
+
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
