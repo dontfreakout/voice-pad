@@ -10,16 +10,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: amd64
+          - platform: linux/amd64
             runner: ubuntu-latest
-          - arch: arm64
+            arch: amd64
+          - platform: linux/arm64
             runner: ubuntu-24.04-arm
-
+            arch: arm64
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
-      packages: write  # Required to push to GitHub Container Registry
-
+      packages: write
+    outputs:
+      digest-amd64: ${{ matrix.arch == 'amd64' && steps.build.outputs.digest || '' }}
+      digest-arm64: ${{ matrix.arch == 'arm64' && steps.build.outputs.digest || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,29 +42,30 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/voice-pad
+          flavor: |
+            latest=false
           tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag,suffix=-${{ matrix.arch }}
 
-      - name: Build and push Docker image
+      - name: Build and push ${{ matrix.arch }} image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
-          platforms: linux/${{ matrix.arch }}
+          file: ./.docker/php/Dockerfile.prod
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.arch }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/voice-pad:buildcache-${{ matrix.arch }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/voice-pad:buildcache-${{ matrix.arch }},mode=max
 
-  manifest:
+  create-manifest:
     runs-on: ubuntu-latest
     needs: build
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -70,20 +74,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata for manifest
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/voice-pad
-          tags: |
-            type=ref,event=tag
 
       - name: Create and push manifest
         run: |
-          TAGS="${{ steps.meta.outputs.tags }}"
-          for tag in $TAGS; do
-            docker manifest create $tag \
-              $tag-amd64 \
-              $tag-arm64
-            docker manifest push $tag
-          done
+          # Extract tag from metadata
+          TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+
+          # Create manifest list
+          docker buildx imagetools create \
+            --tag $TAG \
+            $TAG-amd64 \
+            $TAG-arm64
+
+          # If this is a version tag, also create/update latest tag
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            LATEST_TAG="ghcr.io/${{ github.repository_owner }}/voice-pad:latest"
+            docker buildx imagetools create \
+              --tag $LATEST_TAG \
+              $TAG-amd64 \
+              $TAG-arm64
+          fi
